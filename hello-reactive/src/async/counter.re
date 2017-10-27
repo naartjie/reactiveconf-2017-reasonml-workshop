@@ -17,12 +17,20 @@ let make _children => {
   initialState: fun () => {count: 0, timerId: ref None},
   reducer: fun action state =>
     switch action {
-    | Tick => ReasonReact.Update {...state, count: state.count + 1}
+    | Tick => ReasonReact.UpdateWithSideEffects
+                {...state, count: state.count + 1}
+                (fun {state: {count}} => Js.log ("count = " ^ string_of_int count));
     },
   didMount: fun self => {
     /* this will call `reduce` every second */
     self.state.timerId := Some (Js.Global.setInterval (self.reduce (fun _ => Tick)) 1000);
     ReasonReact.NoUpdate
+  },
+  willUnmount: fun self => {
+    switch !self.state.timerId {
+    | None => ()
+    | Some x => Js.Global.clearInterval x
+    };
   },
   render: fun {state: {count}} => {
     let timesMessage = count == 1 ? "second" : "seconds";
